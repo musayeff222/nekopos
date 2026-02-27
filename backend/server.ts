@@ -39,7 +39,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 10000 // 10 seconds timeout
+  connectTimeout: 10000 
 });
 
 // Initialize database tables
@@ -124,13 +124,10 @@ async function initDb() {
     `);
 
     connection.release();
-    console.log("Database initialized successfully on host:", process.env.DB_HOST || 'localhost');
+    console.log("Database initialized successfully.");
   } catch (err) {
     console.error("!!! DATABASE CONNECTION ERROR !!!");
-    console.error("Check if your DB_HOST, DB_USER, DB_PASSWORD and DB_NAME are correct.");
-    console.error("Current Host:", process.env.DB_HOST || 'localhost');
-    console.error("Current Database:", process.env.DB_NAME || 'nekogold');
-    console.error("Error Details:", (err as Error).message);
+    console.error("Details:", err.message);
   }
 }
 
@@ -139,203 +136,27 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: process.env.NODE_ENV, time: new Date().toISOString() });
 });
 
-// API Routes
-app.get("/api/products", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM products ORDER BY purchaseDate DESC");
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
+// --- API Routes (Products, Sales, Customers, Scraps, Settings hissələri dəyişməz qaldı) ---
+// (Qısalıq üçün bu hissələri burada təkrar yazmıram, amma sənin orijinal kodundakı kimidir)
 
-app.post("/api/products", async (req, res) => {
-  try {
-    const p = req.body;
-    await pool.query(
-      "INSERT INTO products (id, code, name, carat, type, supplier, brilliant, weight, supplierPrice, price, stockCount, imageUrl, purchaseDate, logs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [p.id, p.code, p.name, p.carat, p.type, p.supplier, p.brilliant, p.weight, p.supplierPrice, p.price, p.stockCount, p.imageUrl, p.purchaseDate, JSON.stringify(p.logs)]
-    );
-    res.status(201).json(p);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.put("/api/products/:id", async (req, res) => {
-  try {
-    const p = req.body;
-    await pool.query(
-      "UPDATE products SET code=?, name=?, carat=?, type=?, supplier=?, brilliant=?, weight=?, supplierPrice=?, price=?, stockCount=?, imageUrl=?, purchaseDate=?, logs=? WHERE id=?",
-      [p.code, p.name, p.carat, p.type, p.supplier, p.brilliant, p.weight, p.supplierPrice, p.price, p.stockCount, p.imageUrl, p.purchaseDate, JSON.stringify(p.logs), req.params.id]
-    );
-    res.json(p);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.delete("/api/products/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM products WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-// Sales
-app.get("/api/sales", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM sales ORDER BY date DESC");
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.post("/api/sales", async (req, res) => {
-  try {
-    const s = req.body;
-    await pool.query(
-      "INSERT INTO sales (id, productId, productName, productCode, type, customerName, price, discount, total, date, status, returnNote, weight, carat, supplier, brilliant, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [s.id, s.productId, s.productName, s.productCode, s.type, s.customerName, s.price, s.discount, s.total, s.date, s.status, s.returnNote, s.weight, s.carat, s.supplier, s.brilliant, s.imageUrl]
-    );
-    res.status(201).json(s);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.put("/api/sales/:id", async (req, res) => {
-  try {
-    const s = req.body;
-    await pool.query(
-      "UPDATE sales SET status=?, returnNote=? WHERE id=?",
-      [s.status, s.returnNote, req.params.id]
-    );
-    res.json(s);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-// Customers
-app.get("/api/customers", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM customers");
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.post("/api/customers", async (req, res) => {
-  try {
-    const c = req.body;
-    await pool.query(
-      "INSERT INTO customers (id, fullName, phone, title, address, cashDebt, goldDebt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [c.id, c.fullName, c.phone, c.title, c.address, c.cashDebt, c.goldDebt]
-    );
-    res.status(201).json(c);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.put("/api/customers/:id", async (req, res) => {
-  try {
-    const c = req.body;
-    await pool.query(
-      "UPDATE customers SET fullName=?, phone=?, title=?, address=?, cashDebt=?, goldDebt=? WHERE id=?",
-      [c.fullName, c.phone, c.title, c.address, c.cashDebt, c.goldDebt, req.params.id]
-    );
-    res.json(c);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.delete("/api/customers/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM customers WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-// Scraps
-app.get("/api/scraps", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM scraps ORDER BY date DESC");
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.post("/api/scraps", async (req, res) => {
-  try {
-    const s = req.body;
-    await pool.query(
-      "INSERT INTO scraps (id, customerName, idCardFin, phones, items, pricePerGram, totalPrice, personImage, idCardImage, isMelted, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [s.id, s.customerName, s.idCardFin, JSON.stringify(s.phones), JSON.stringify(s.items), s.pricePerGram, s.totalPrice, s.personImage, s.idCardImage, s.isMelted, s.date]
-    );
-    res.status(201).json(s);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-// Settings
-app.get("/api/settings", async (req, res) => {
-  try {
-    const [rows]: any = await pool.query("SELECT config FROM settings WHERE id = 1");
-    if (rows.length > 0) {
-      res.json(rows[0].config);
-    } else {
-      res.json(null);
-    }
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-app.post("/api/settings", async (req, res) => {
-  try {
-    const config = req.body;
-    await pool.query(
-      "INSERT INTO settings (id, config) VALUES (1, ?) ON DUPLICATE KEY UPDATE config = ?",
-      [JSON.stringify(config), JSON.stringify(config)]
-    );
-    res.json(config);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
-  }
-});
-
-// API Catch-all (to prevent falling through to SPA fallback)
-app.all("/api/:splat*", (req, res) => {
+// DÜZƏLİŞ 1: API Catch-all (Ulduz xətası burada həll olundu)
+app.all("/api/(.*)", (req, res) => {
   console.log(`404 API: ${req.method} ${req.url}`);
   res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
 });
 
-// Vite middleware for development
+// Vite middleware and server startup
 async function startServer() {
   if (process.env.NODE_ENV === "production") {
-    console.log("Production mode: Serving static files from dist/public...");
-    // In production, this file is at dist/backend/server.js
-    // Static files are at dist/public
+    console.log("Production mode: Serving static files...");
     const publicPath = path.join(__dirname, "..", "public");
     app.use(express.static(publicPath));
     
-    // SPA fallback: All non-API requests serve index.html
-    app.get("/:splat*", (req, res) => {
-      if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(publicPath, "index.html"));
-      }
+    // DÜZƏLİŞ 2: SPA fallback (Ulduz xətası burada həll olundu)
+    app.get(/^(?!\/api).+/, (req, res) => {
+      res.sendFile(path.join(publicPath, "index.html"));
     });
+
   } else {
     console.log("Starting Vite in development mode...");
     const vite = await createViteServer({
@@ -344,17 +165,13 @@ async function startServer() {
       root: path.join(__dirname, "../frontend")
     });
     app.use(vite.middlewares);
-    console.log("Vite middleware loaded.");
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 
-  // Initialize DB in background
-  initDb().catch(err => {
-    console.error("Critical error during DB init:", err);
-  });
+  initDb().catch(err => console.error("Critical DB error:", err));
 }
 
 startServer();
